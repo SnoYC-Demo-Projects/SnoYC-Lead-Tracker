@@ -61,6 +61,8 @@ export function LeadModal({
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
+    if (!isOpen) return;
+
     if (editingLead) {
       setFormData({
         ...editingLead,
@@ -92,7 +94,7 @@ export function LeadModal({
       });
     }
     setErrors({});
-  }, [editingLead, isOpen, currentUser, existingLeads, users, initialAssignee]);
+  }, [isOpen, editingLead]);
 
   if (!isOpen) return null;
 

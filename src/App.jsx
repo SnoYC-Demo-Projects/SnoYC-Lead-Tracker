@@ -121,10 +121,16 @@ function MainApp() {
       try {
         const saved = await api.createLead(leadData);
         if (saved && saved.id) {
-          setLeads(prev => [saved, ...prev.filter(l => l.id !== leadData.id && l.id !== saved.id)]);
+          setLeads(prev => {
+            const nextLeads = [saved, ...prev.filter(l => l.id !== leadData.id && l.id !== saved.id)];
+            saveLeads(nextLeads);
+            return nextLeads;
+          });
         }
       } catch (e) {
         console.error("Failed to create on server", e);
+        alert("Could not save lead: " + (e.message || "Network or database error"));
+        return;
       }
     }
     refreshLeads();
