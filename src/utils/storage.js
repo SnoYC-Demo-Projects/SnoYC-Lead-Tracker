@@ -2,7 +2,7 @@ import { INITIAL_USERS, INITIAL_LEADS } from "../data/mockData";
 
 const USERS_KEY = "snoyc_lead_users_v1";
 const LEADS_KEY = "snoyc_lead_leads_v1";
-const CURRENT_USER_KEY = "snoyc_lead_current_user_v1";
+const CURRENT_USER_KEY = "snoyc_lead_auth_session_v2";
 
 // Load or seed users
 export function getUsers() {
@@ -42,19 +42,16 @@ export function saveLeads(leads) {
   localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
 }
 
-// Current auth session
+// Current auth session - returns null if not logged in
 export function getCurrentUser() {
   try {
     const raw = localStorage.getItem(CURRENT_USER_KEY);
     if (!raw) {
-      // Default to Admin Alex Rivera on initial launch so the user immediately sees the rich dashboard!
-      const defaultUser = INITIAL_USERS[0];
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(defaultUser));
-      return defaultUser;
+      return null;
     }
     return JSON.parse(raw);
   } catch (e) {
-    return INITIAL_USERS[0];
+    return null;
   }
 }
 
@@ -66,10 +63,10 @@ export function setCurrentUser(user) {
   }
 }
 
-// Reset all storage back to default mock data
+// Reset all storage back to default mock data and clear active session
 export function resetStorage() {
   localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS));
   localStorage.setItem(LEADS_KEY, JSON.stringify(INITIAL_LEADS));
-  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(INITIAL_USERS[0]));
-  return { users: INITIAL_USERS, leads: INITIAL_LEADS, currentUser: INITIAL_USERS[0] };
+  localStorage.removeItem(CURRENT_USER_KEY);
+  return { users: INITIAL_USERS, leads: INITIAL_LEADS, currentUser: null };
 }

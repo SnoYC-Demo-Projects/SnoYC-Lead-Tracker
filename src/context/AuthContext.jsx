@@ -50,7 +50,7 @@ export function AuthProvider({ children }) {
     // Fallback check against local users
     const allUsers = users;
     const found = allUsers.find(
-      u => u.email.toLowerCase() === email.trim().toLowerCase() && (u.password === password || password === "user123" || password === "admin123")
+      u => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password
     );
 
     if (found) {

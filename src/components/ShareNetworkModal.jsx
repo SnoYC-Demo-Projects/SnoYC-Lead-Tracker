@@ -30,7 +30,7 @@ export function ShareNetworkModal({ isOpen, onClose, networkInfo }) {
         <div className="modal-body" style={{ gap: "1.25rem" }}>
           <div>
             <p style={{ fontSize: "0.86rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-              All leads and team accounts are stored in a centralized SQLite database. Any team member on your Wi-Fi or office network can open this URL on their phone, tablet, or laptop to log in and manage their leads:
+              All leads and team accounts are securely synchronized in real time with your <strong>Supabase Cloud Database</strong>. Team members can open this web application from any browser, device, or phone to log in and manage leads in real time:
             </p>
           </div>
 

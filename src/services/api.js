@@ -1,155 +1,349 @@
-// Central API Client connecting to Express + SQLite backend
-const API_BASE = "/api";
+// Central API Client connecting directly to Supabase Cloud PostgreSQL
+import { supabase, isSupabaseConfigured } from "./supabaseClient";
+import { INITIAL_USERS, INITIAL_LEADS } from "../data/mockData";
 
 export const api = {
-  // Network Info & Share link
+  // Provider / Connection status
   async getNetworkInfo() {
-    try {
-      const res = await fetch(`${API_BASE}/network-info`);
-      if (!res.ok) throw new Error("Failed to fetch network info");
-      return await res.json();
-    } catch (err) {
-      console.warn("Using fallback localhost network info", err);
-      return {
-        localIp: "localhost",
-        vitePort: 5173,
-        shareUrl: "http://localhost:5173/"
-      };
-    }
+    return {
+      provider: "Supabase Cloud Database",
+      isConfigured: isSupabaseConfigured,
+      shareUrl: typeof window !== "undefined" ? window.location.origin : "http://localhost:5173"
+    };
   },
 
-  // Users
+  // ==========================================
+  // USERS & AUTHENTICATION
+  // ==========================================
+
   async getUsers() {
+    if (!isSupabaseConfigured || !supabase) return null;
     try {
-      const res = await fetch(`${API_BASE}/users`);
-      if (!res.ok) throw new Error("Failed to fetch users");
-      return await res.json();
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, name, email, role, status, avatar, title")
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return data || [];
     } catch (err) {
-      console.error("API Error fetching users:", err);
+      console.error("[Supabase] Error fetching users:", err.message);
       return null;
     }
   },
 
   async login(email, password) {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    });
-    return await res.json();
+    if (!isSupabaseConfigured || !supabase) {
+      return { fallback: true };
+    }
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const { data: user, error } = await supabase
+        .from("users")
+        .select("*")
+        .ilike("email", cleanEmail)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!user) {
+        return { success: false, error: "Invalid email address or account not found" };
+      }
+
+      // Check password
+      const valid = user.password === password;
+      if (!valid) {
+        return { success: false, error: "Incorrect password" };
+      }
+
+      if (user.status === "pending") {
+        return { success: false, error: "Your registration is pending Admin approval. Please contact the administrator." };
+      }
+      if (user.status === "rejected") {
+        return { success: false, error: "Your account registration was declined by the administrator." };
+      }
+
+      return { success: true, user };
+    } catch (err) {
+      console.error("[Supabase] Login error:", err.message);
+      return { success: false, error: err.message };
+    }
   },
 
   async register(registrationData) {
-    const res = await fetch(`${API_BASE}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(registrationData)
-    });
-    return await res.json();
-  },
+    if (!isSupabaseConfigured || !supabase) {
+      return { fallback: true };
+    }
+    try {
+      const newUser = {
+        id: `user-${Date.now()}`,
+        name: registrationData.name,
+        email: registrationData.email.trim().toLowerCase(),
+        password: registrationData.password,
+        role: "member",
+        status: "pending",
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(registrationData.name)}`,
+        title: registrationData.title || "Sales Representative"
+      };
 
-  async updateUserStatus(id, status) {
-    const res = await fetch(`${API_BASE}/users/${encodeURIComponent(id)}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status })
-    });
-    if (!res.ok) throw new Error("Failed to update user status");
-    return await res.json();
-  },
+      const { data, error } = await supabase
+        .from("users")
+        .insert(newUser)
+        .select()
+        .single();
 
-  async updateProfile(id, profileData) {
-    const res = await fetch(`${API_BASE}/users/${encodeURIComponent(id)}/profile`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(profileData)
-    });
-    return await res.json();
-  },
+      if (error) {
+        if (error.code === "23505") { // Unique violation
+          return { success: false, error: "An account with this email already exists" };
+        }
+        throw error;
+      }
 
-  async deleteUser(id) {
-    const res = await fetch(`${API_BASE}/users/${encodeURIComponent(id)}`, {
-      method: "DELETE"
-    });
-    if (!res.ok) throw new Error("Failed to delete user");
-    return await res.json();
+      return { 
+        success: true, 
+        message: "Registration submitted! Your account is pending Admin approval.", 
+        user: data 
+      };
+    } catch (err) {
+      console.error("[Supabase] Registration error:", err.message);
+      return { success: false, error: err.message };
+    }
   },
 
   async createUser(userData) {
-    const res = await fetch(`${API_BASE}/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData)
-    });
-    if (!res.ok) throw new Error("Failed to create team member");
-    return await res.json();
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const record = {
+        id: userData.id || `user-${Date.now()}`,
+        name: userData.name,
+        email: userData.email.trim().toLowerCase(),
+        password: userData.password || "user123",
+        role: userData.role || "member",
+        status: userData.status || "approved",
+        avatar: userData.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.name)}`,
+        title: userData.title || "Sales Representative"
+      };
+
+      const { data, error } = await supabase
+        .from("users")
+        .insert(record)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error("[Supabase] Create user error:", err.message);
+      return null;
+    }
   },
 
-  // Leads
-  async getLeads() {
+  async updateUserStatus(id, status) {
+    if (!isSupabaseConfigured || !supabase) return null;
     try {
-      const res = await fetch(`${API_BASE}/leads`);
-      if (!res.ok) throw new Error("Failed to fetch leads");
-      return await res.json();
+      const { data, error } = await supabase
+        .from("users")
+        .update({ status })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     } catch (err) {
-      console.error("API Error fetching leads:", err);
+      console.error("[Supabase] Update user status error:", err.message);
+      return null;
+    }
+  },
+
+  async updateProfile(id, profileData) {
+    if (!isSupabaseConfigured || !supabase) return { fallback: true };
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .update(profileData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { success: true, user: data };
+    } catch (err) {
+      console.error("[Supabase] Update profile error:", err.message);
+      return { success: false, error: err.message };
+    }
+  },
+
+  async deleteUser(id) {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      const { error } = await supabase
+        .from("users")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      return true;
+    } catch (err) {
+      console.error("[Supabase] Delete user error:", err.message);
+      return false;
+    }
+  },
+
+  // ==========================================
+  // LEADS (CRUD)
+  // ==========================================
+
+  async getLeads() {
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .order("createdAt", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error("[Supabase] Error fetching leads:", err.message);
       return null;
     }
   },
 
   async createLead(leadData) {
-    const res = await fetch(`${API_BASE}/leads`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(leadData)
-    });
-    if (!res.ok) throw new Error("Failed to create lead");
-    return await res.json();
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const newLead = {
+        ...leadData,
+        id: leadData.id || `lead-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        estimatedValue: Number(leadData.estimatedValue) || 0,
+        createdAt: leadData.createdAt || new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from("leads")
+        .insert(newLead)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error("[Supabase] Create lead error:", err.message);
+      throw err;
+    }
   },
 
   async updateLead(id, leadData) {
-    const res = await fetch(`${API_BASE}/leads/${encodeURIComponent(id)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(leadData)
-    });
-    if (!res.ok) throw new Error("Failed to update lead");
-    return await res.json();
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const payload = {
+        ...leadData,
+        estimatedValue: Number(leadData.estimatedValue) || 0
+      };
+
+      const { data, error } = await supabase
+        .from("leads")
+        .update(payload)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error("[Supabase] Update lead error:", err.message);
+      throw err;
+    }
   },
 
   async updateLeadStatus(id, status, lastContacted, notes) {
-    const res = await fetch(`${API_BASE}/leads/${encodeURIComponent(id)}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, lastContacted, notes })
-    });
-    if (!res.ok) throw new Error("Failed to update lead status");
-    return await res.json();
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const updateFields = { status };
+      if (lastContacted !== undefined) updateFields.lastContacted = lastContacted;
+      if (notes !== undefined) updateFields.notes = notes;
+
+      const { data, error } = await supabase
+        .from("leads")
+        .update(updateFields)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error("[Supabase] Update lead status error:", err.message);
+      throw err;
+    }
   },
 
   async appendLeadNotes(id, notes) {
-    const res = await fetch(`${API_BASE}/leads/${encodeURIComponent(id)}/notes`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notes })
-    });
-    if (!res.ok) throw new Error("Failed to save note");
-    return await res.json();
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from("leads")
+        .update({ notes })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error("[Supabase] Append notes error:", err.message);
+      throw err;
+    }
   },
 
   async deleteLead(id) {
-    const res = await fetch(`${API_BASE}/leads/${encodeURIComponent(id)}`, {
-      method: "DELETE"
-    });
-    if (!res.ok) throw new Error("Failed to delete lead");
-    return await res.json();
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      const { error } = await supabase
+        .from("leads")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      return true;
+    } catch (err) {
+      console.error("[Supabase] Delete lead error:", err.message);
+      throw err;
+    }
   },
 
+  // Reset / Clean database
   async resetDatabase() {
-    const res = await fetch(`${API_BASE}/reset`, {
-      method: "POST"
-    });
-    if (!res.ok) throw new Error("Failed to reset database");
-    return await res.json();
+    if (!isSupabaseConfigured || !supabase) return { fallback: true };
+    try {
+      await supabase.from("leads").delete().neq("id", "none");
+      await supabase.from("users").delete().neq("id", "user-admin");
+      return { success: true };
+    } catch (err) {
+      console.error("[Supabase] Reset database error:", err.message);
+      throw err;
+    }
+  },
+
+  // Real-time subscription listener
+  subscribeToLeads(onUpdate) {
+    if (!isSupabaseConfigured || !supabase) return () => {};
+
+    const channel = supabase
+      .channel("leads-realtime-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "leads" },
+        (payload) => {
+          if (typeof onUpdate === "function") {
+            onUpdate(payload);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }
 };

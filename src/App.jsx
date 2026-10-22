@@ -12,6 +12,7 @@ import { LoginModal } from "./components/LoginModal";
 import { FollowUpAlerts } from "./components/FollowUpAlerts";
 import { ShareNetworkModal } from "./components/ShareNetworkModal";
 import { AdminProfileModal } from "./components/AdminProfileModal";
+import { AuthPage } from "./components/AuthPage";
 import { api } from "./services/api";
 import { 
   getLeads, 
@@ -71,13 +72,21 @@ function MainApp() {
     }
   }, []);
 
-  // Initial load and periodic polling (every 6 seconds for live multi-device team collaboration)
+  // Initial load, real-time Supabase listener, and fallback background sync
   useEffect(() => {
     refreshLeads();
     api.getNetworkInfo().then(info => setNetworkInfo(info));
 
-    const interval = setInterval(refreshLeads, 6000);
-    return () => clearInterval(interval);
+    // Live instant updates when any lead changes in Supabase
+    const unsubscribe = api.subscribeToLeads(() => {
+      refreshLeads();
+    });
+
+    const interval = setInterval(refreshLeads, 15000);
+    return () => {
+      clearInterval(interval);
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
   }, [refreshLeads]);
 
   // Sync selected lead drawer if lead was edited
@@ -624,10 +633,20 @@ function MainApp() {
   );
 }
 
+function AppContent() {
+  const { currentUser } = useAuth();
+
+  if (!currentUser) {
+    return <AuthPage />;
+  }
+
+  return <MainApp />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <AppContent />
     </AuthProvider>
   );
 }
