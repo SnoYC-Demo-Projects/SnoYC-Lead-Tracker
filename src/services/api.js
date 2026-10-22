@@ -214,7 +214,7 @@ export const api = {
     try {
       const newLead = {
         ...leadData,
-        id: leadData.id || `lead-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        id: leadData.id || `LD-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 90 + 10)}`,
         estimatedValue: Number(leadData.estimatedValue) || 0,
         createdAt: leadData.createdAt || new Date().toISOString()
       };
@@ -225,7 +225,20 @@ export const api = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // If ID collided with an existing lead, retry with a guaranteed unique ID
+        if (error.code === "23505" || error.message?.includes("duplicate key")) {
+          newLead.id = `LD-${Date.now().toString().slice(-5)}${Math.floor(Math.random() * 90 + 10)}`;
+          const retry = await supabase
+            .from("leads")
+            .insert(newLead)
+            .select()
+            .single();
+          if (retry.error) throw retry.error;
+          return retry.data;
+        }
+        throw error;
+      }
       return data;
     } catch (err) {
       console.error("[Supabase] Create lead error:", err.message);

@@ -49,6 +49,7 @@ function MainApp() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isAdminSettingsOpen, setIsAdminSettingsOpen] = useState(false);
+  const [preselectedMember, setPreselectedMember] = useState(null);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -118,9 +119,12 @@ function MainApp() {
       saveLeads(updated);
 
       try {
-        await api.createLead(leadData);
+        const saved = await api.createLead(leadData);
+        if (saved && saved.id) {
+          setLeads(prev => [saved, ...prev.filter(l => l.id !== leadData.id && l.id !== saved.id)]);
+        }
       } catch (e) {
-        console.warn("Failed to create on server", e);
+        console.error("Failed to create on server", e);
       }
     }
     refreshLeads();
@@ -212,8 +216,9 @@ function MainApp() {
     setCurrentTab("table");
   };
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = (member = null) => {
     setEditingLead(null);
+    setPreselectedMember(member);
     setIsAddModalOpen(true);
   };
 
@@ -579,6 +584,7 @@ function MainApp() {
           <TeamManagementView
             leads={leads}
             onFilterByMember={handleFilterByMember}
+            onAddLeadForMember={(m) => handleOpenAddModal(m)}
           />
         )}
       </main>
@@ -589,6 +595,7 @@ function MainApp() {
         onClose={() => {
           setIsAddModalOpen(false);
           setEditingLead(null);
+          setPreselectedMember(null);
         }}
         onSave={handleSaveLead}
         editingLead={editingLead}
@@ -596,6 +603,7 @@ function MainApp() {
         currentUser={currentUser}
         users={users}
         isAdmin={isAdmin}
+        initialAssignee={preselectedMember}
       />
 
       {/* Lead Detail & Activity Drawer */}

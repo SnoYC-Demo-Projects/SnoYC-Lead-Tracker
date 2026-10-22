@@ -23,9 +23,22 @@ export function LeadModal({
   editingLead, 
   existingLeads, 
   currentUser, 
-  users, 
-  isAdmin 
+  users = [], 
+  isAdmin,
+  initialAssignee
 }) {
+  const getInitialAssigneeId = () => {
+    if (initialAssignee) return initialAssignee.id;
+    if (!isAdmin && currentUser) return currentUser.id;
+    return currentUser?.id || users[0]?.id || "";
+  };
+
+  const getInitialAssigneeName = () => {
+    if (initialAssignee) return initialAssignee.name;
+    if (!isAdmin && currentUser) return currentUser.name;
+    return currentUser?.name || users[0]?.name || "";
+  };
+
   const [formData, setFormData] = useState({
     id: "",
     dateLogged: getTodayDateString(),
@@ -40,8 +53,8 @@ export function LeadModal({
     lastContacted: getTodayDateString(),
     nextFollowUp: getTodayDateString(),
     notes: "",
-    assignedToId: currentUser?.id || "user-sarah",
-    assignedToName: currentUser?.name || "Sarah Chen",
+    assignedToId: getInitialAssigneeId(),
+    assignedToName: getInitialAssigneeName(),
     estimatedValue: 0
   });
 
@@ -56,6 +69,9 @@ export function LeadModal({
     } else {
       // Create new lead defaults
       const nextId = generateNextLeadId(existingLeads || []);
+      const assigneeId = getInitialAssigneeId();
+      const assigneeName = getInitialAssigneeName();
+
       setFormData({
         id: nextId,
         dateLogged: getTodayDateString(),
@@ -70,13 +86,13 @@ export function LeadModal({
         lastContacted: getTodayDateString(),
         nextFollowUp: getTodayDateString(),
         notes: "",
-        assignedToId: currentUser?.id || users[0]?.id || "",
-        assignedToName: currentUser?.name || users[0]?.name || "",
+        assignedToId: assigneeId,
+        assignedToName: assigneeName,
         estimatedValue: 0
       });
     }
     setErrors({});
-  }, [editingLead, isOpen, currentUser, existingLeads, users]);
+  }, [editingLead, isOpen, currentUser, existingLeads, users, initialAssignee]);
 
   if (!isOpen) return null;
 
@@ -98,11 +114,9 @@ export function LeadModal({
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.businessName.trim()) newErrors.businessName = "Business name is required";
-    if (!formData.contactName.trim()) newErrors.contactName = "Contact / owner name is required";
-    if (!formData.phone.trim()) newErrors.phone = "Phone or WhatsApp number is required";
-    if (!formData.city.trim()) newErrors.city = "Area or city is required";
-    if (!formData.need.trim()) newErrors.need = "Please describe the lead's requirement/need";
+    if (!formData.businessName?.trim()) newErrors.businessName = "Business name is required";
+    if (!formData.contactName?.trim()) newErrors.contactName = "Contact / owner name is required";
+    if (!formData.phone?.trim()) newErrors.phone = "Phone or WhatsApp number is required";
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -111,7 +125,12 @@ export function LeadModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
-    onSave(formData);
+    const finalData = {
+      ...formData,
+      city: formData.city?.trim() || "General",
+      need: formData.need?.trim() || "General Inquiry"
+    };
+    onSave(finalData);
     onClose();
   };
 
@@ -162,18 +181,27 @@ export function LeadModal({
                 <label className="form-label">
                   <User size={13} /> Assigned Team Member
                 </label>
-                <select
-                  className="form-select"
-                  value={formData.assignedToId}
-                  onChange={(e) => handleAssigneeChange(e.target.value)}
-                  disabled={!isAdmin && editingLead} // Admin can reassign any time
-                >
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.role === "admin" ? "Admin" : "Member"})
-                    </option>
-                  ))}
-                </select>
+                {isAdmin ? (
+                  <select
+                    className="form-select"
+                    value={formData.assignedToId}
+                    onChange={(e) => handleAssigneeChange(e.target.value)}
+                  >
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.role === "admin" ? "Admin" : "Member"})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={`${formData.assignedToName || currentUser?.name || "You"} (Assigned to You)`}
+                    disabled
+                    style={{ opacity: 0.85, cursor: "not-allowed" }}
+                  />
+                )}
               </div>
             </div>
 

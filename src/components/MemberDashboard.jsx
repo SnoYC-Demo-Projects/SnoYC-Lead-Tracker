@@ -21,7 +21,10 @@ export function MemberDashboard({
   onOpenLeadDetail, 
   onNavigateToTable 
 }) {
-  const myLeads = leads.filter(l => l.assignedToId === currentUser?.id);
+  const myLeads = leads.filter(l => 
+    l.assignedToId === currentUser?.id || 
+    (l.assignedToName && currentUser?.name && l.assignedToName.toLowerCase() === currentUser.name.toLowerCase())
+  );
   const myTotal = myLeads.length;
   const myWon = myLeads.filter(l => l.status === "Won").length;
   

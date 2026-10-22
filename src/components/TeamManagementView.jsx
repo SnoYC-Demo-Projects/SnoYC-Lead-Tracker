@@ -16,7 +16,7 @@ import {
   Clock
 } from "lucide-react";
 
-export function TeamManagementView({ leads, onFilterByMember }) {
+export function TeamManagementView({ leads, onFilterByMember, onAddLeadForMember }) {
   const { users, addTeamMember, updateUserStatus, deleteUser } = useAuth();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newMember, setNewMember] = useState({
@@ -307,6 +307,15 @@ export function TeamManagementView({ leads, onFilterByMember }) {
               </div>
 
               <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}
+                  onClick={() => onAddLeadForMember && onAddLeadForMember(member)}
+                  title={`Add a new lead directly assigned to ${member.name}`}
+                >
+                  <Plus size={14} /> Add Lead
+                </button>
+
                 <button
                   className="btn btn-outline btn-sm"
                   style={{ flex: 1 }}
