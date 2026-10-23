@@ -164,3 +164,14 @@ export function formatRupees(amount) {
   if (amount === undefined || amount === null || isNaN(amount)) return "₹0";
   return `₹${Number(amount).toLocaleString("en-IN")}`;
 }
+
+/**
+ * Check if a lead is owned by or assigned to a user (Admin has universal access)
+ */
+export function isLeadOwnedByUser(lead, user) {
+  if (!lead || !user) return false;
+  if (user.role === "admin") return true;
+  if (lead.assignedToId && String(lead.assignedToId) === String(user.id)) return true;
+  if (lead.assignedToName && user.name && lead.assignedToName.toLowerCase().trim() === user.name.toLowerCase().trim()) return true;
+  return false;
+}

@@ -20,7 +20,8 @@ import {
   getFollowUpUrgency, 
   getWhatsAppUrl, 
   getTelUrl, 
-  getTodayDateString 
+  getTodayDateString,
+  isLeadOwnedByUser
 } from "../utils/helpers";
 import { STATUS_OPTIONS } from "../data/mockData";
 
@@ -30,11 +31,33 @@ export function LeadDetailDrawer({
   onClose, 
   onEditLead, 
   onAddNote,
-  onUpdateStatus 
+  onUpdateStatus,
+  currentUser,
+  isAdmin
 }) {
   const [newNoteText, setNewNoteText] = useState("");
 
   if (!isOpen || !lead) return null;
+
+  const canAccess = isAdmin || isLeadOwnedByUser(lead, currentUser);
+
+  if (!canAccess) {
+    return (
+      <div className="drawer-overlay" onClick={onClose}>
+        <div className="drawer-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 450, padding: "2rem" }}>
+          <div className="drawer-header">
+            <h3>Access Restricted</h3>
+            <button className="btn-icon" onClick={onClose}>
+              <X size={18} />
+            </button>
+          </div>
+          <p style={{ color: "var(--text-muted)", marginTop: "1rem" }}>
+            You do not have permission to view or edit this lead. Only the assigned representative ({lead.assignedToName || "another member"}) or an Administrator can access it.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const urgency = getFollowUpUrgency(lead.nextFollowUp, lead.status);
   const statusMeta = STATUS_OPTIONS.find(s => s.value === lead.status) || {

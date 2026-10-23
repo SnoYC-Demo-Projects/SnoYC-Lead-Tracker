@@ -66,6 +66,8 @@ export function LeadModal({
     if (editingLead) {
       setFormData({
         ...editingLead,
+        assignedToId: !isAdmin && currentUser ? currentUser.id : (editingLead.assignedToId || currentUser?.id || ""),
+        assignedToName: !isAdmin && currentUser ? currentUser.name : (editingLead.assignedToName || currentUser?.name || ""),
         estimatedValue: editingLead.estimatedValue || 0
       });
     } else {
@@ -127,8 +129,19 @@ export function LeadModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
+
+    // Strict security check: non-admin can only create/save leads for themselves
+    const assigneeId = (!isAdmin && currentUser) 
+      ? currentUser.id 
+      : (formData.assignedToId || currentUser?.id || users[0]?.id || "");
+    const assigneeName = (!isAdmin && currentUser) 
+      ? currentUser.name 
+      : (formData.assignedToName || currentUser?.name || users[0]?.name || "Unassigned");
+
     const finalData = {
       ...formData,
+      assignedToId: assigneeId,
+      assignedToName: assigneeName,
       city: formData.city?.trim() || "General",
       need: formData.need?.trim() || "General Inquiry"
     };

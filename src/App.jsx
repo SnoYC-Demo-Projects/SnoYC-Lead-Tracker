@@ -22,7 +22,8 @@ import {
 import { 
   exportLeadsToCSV, 
   getFollowUpUrgency,
-  getTodayDateString 
+  getTodayDateString,
+  isLeadOwnedByUser 
 } from "./utils/helpers";
 import { STATUS_OPTIONS, BUSINESS_TYPES, LEAD_SOURCES } from "./data/mockData";
 import { 
@@ -60,10 +61,10 @@ function MainApp() {
   const [urgencyFilter, setUrgencyFilter] = useState("all"); // 'all' | 'urgent' | 'overdue' | 'today'
   const [myLeadsOnly, setMyLeadsOnly] = useState(false);
 
-  // Fetch leads from centralized SQLite API
+  // Fetch leads: admin gets all leads; members only get their own leads
   const refreshLeads = useCallback(async () => {
     try {
-      const serverLeads = await api.getLeads();
+      const serverLeads = await api.getLeads(currentUser);
       if (serverLeads && Array.isArray(serverLeads)) {
         setLeads(serverLeads);
         saveLeads(serverLeads);
@@ -71,7 +72,7 @@ function MainApp() {
     } catch (err) {
       console.warn("Could not sync with API, using cached data", err);
     }
-  }, []);
+  }, [currentUser]);
 
   // Initial load, real-time Supabase listener, and fallback background sync
   useEffect(() => {
@@ -98,31 +99,52 @@ function MainApp() {
     }
   }, [leads]);
 
-  // Lead CRUD handlers
+  // Lead CRUD handlers with role-based permission verification
   const handleSaveLead = async (leadData) => {
     if (editingLead) {
+      // Permission check: only admin or assigned owner can edit
+      if (!isAdmin && !isLeadOwnedByUser(editingLead, currentUser)) {
+        alert("Permission Denied: You can only edit your own leads.");
+        return;
+      }
+
+      // Member cannot reassign lead ownership
+      const safeData = {
+        ...leadData,
+        assignedToId: !isAdmin && currentUser ? currentUser.id : leadData.assignedToId,
+        assignedToName: !isAdmin && currentUser ? currentUser.name : leadData.assignedToName
+      };
+
       // Optimistic update
-      const updated = leads.map(l => l.id === editingLead.id ? { ...leadData } : l);
+      const updated = leads.map(l => l.id === editingLead.id ? { ...safeData } : l);
       setLeads(updated);
       saveLeads(updated);
       setEditingLead(null);
 
       try {
-        await api.updateLead(editingLead.id, leadData);
+        await api.updateLead(editingLead.id, safeData);
       } catch (e) {
         console.warn("Failed to update on server", e);
+        alert("Could not update lead: " + (e.message || "Network error"));
       }
     } else {
+      // Create new lead: auto-assign to currentUser if member
+      const safeData = {
+        ...leadData,
+        assignedToId: !isAdmin && currentUser ? currentUser.id : (leadData.assignedToId || currentUser?.id),
+        assignedToName: !isAdmin && currentUser ? currentUser.name : (leadData.assignedToName || currentUser?.name)
+      };
+
       // Optimistic update
-      const updated = [leadData, ...leads];
+      const updated = [safeData, ...leads];
       setLeads(updated);
       saveLeads(updated);
 
       try {
-        const saved = await api.createLead(leadData);
+        const saved = await api.createLead(safeData);
         if (saved && saved.id) {
           setLeads(prev => {
-            const nextLeads = [saved, ...prev.filter(l => l.id !== leadData.id && l.id !== saved.id)];
+            const nextLeads = [saved, ...prev.filter(l => l.id !== safeData.id && l.id !== saved.id)];
             saveLeads(nextLeads);
             return nextLeads;
           });
@@ -137,6 +159,14 @@ function MainApp() {
   };
 
   const handleDeleteLead = async (leadId) => {
+    const target = leads.find(l => l.id === leadId);
+    if (!target) return;
+
+    if (!isAdmin && !isLeadOwnedByUser(target, currentUser)) {
+      alert("Permission Denied: You can only delete your own leads.");
+      return;
+    }
+
     if (window.confirm(`Are you sure you want to delete lead ${leadId}?`)) {
       const updated = leads.filter(l => l.id !== leadId);
       setLeads(updated);
@@ -154,9 +184,16 @@ function MainApp() {
   };
 
   const handleQuickStatusChange = async (leadId, newStatus) => {
+    const target = leads.find(l => l.id === leadId);
+    if (!target) return;
+
+    if (!isAdmin && !isLeadOwnedByUser(target, currentUser)) {
+      alert("Permission Denied: You can only update your own leads.");
+      return;
+    }
+
     const today = getTodayDateString();
     const noteEntry = `[${today}] Status updated to ${newStatus}`;
-    const target = leads.find(l => l.id === leadId);
     const combinedNotes = target?.notes ? `${noteEntry}\n${target.notes}` : noteEntry;
 
     // Optimistic update
@@ -182,6 +219,14 @@ function MainApp() {
   };
 
   const handleAddNote = async (leadId, notesContent) => {
+    const target = leads.find(l => l.id === leadId);
+    if (!target) return;
+
+    if (!isAdmin && !isLeadOwnedByUser(target, currentUser)) {
+      alert("Permission Denied: You can only add notes to your own leads.");
+      return;
+    }
+
     // Optimistic update
     const updated = leads.map(l => {
       if (l.id === leadId) {
@@ -229,20 +274,30 @@ function MainApp() {
   };
 
   const handleOpenEditModal = (lead) => {
+    if (!isAdmin && !isLeadOwnedByUser(lead, currentUser)) {
+      alert("Permission Denied: You can only edit your own leads.");
+      return;
+    }
     setEditingLead(lead);
     setIsAddModalOpen(true);
   };
 
-  // Filtered Leads calculation
+  // Only admin sees all company leads; members only see and edit their own assigned leads
+  const accessibleLeads = useMemo(() => {
+    if (isAdmin) return leads;
+    return leads.filter(l => isLeadOwnedByUser(l, currentUser));
+  }, [leads, isAdmin, currentUser]);
+
+  // Filtered Leads calculation based on user's accessible leads
   const filteredLeads = useMemo(() => {
-    return leads.filter((lead) => {
-      // 1. My Leads Only toggle
-      if (myLeadsOnly && currentUser && lead.assignedToId !== currentUser.id) {
+    return accessibleLeads.filter((lead) => {
+      // 1. My Leads Only toggle (only applies to Admin)
+      if (isAdmin && myLeadsOnly && currentUser && lead.assignedToId !== currentUser.id) {
         return false;
       }
 
       // 2. Member filter (admin view)
-      if (memberFilter !== "all" && lead.assignedToId !== memberFilter) {
+      if (isAdmin && memberFilter !== "all" && lead.assignedToId !== memberFilter) {
         return false;
       }
 
@@ -295,15 +350,15 @@ function MainApp() {
 
       return true;
     });
-  }, [leads, searchQuery, statusFilter, memberFilter, businessTypeFilter, sourceFilter, urgencyFilter, myLeadsOnly, currentUser]);
+  }, [accessibleLeads, searchQuery, statusFilter, memberFilter, businessTypeFilter, sourceFilter, urgencyFilter, myLeadsOnly, currentUser, isAdmin]);
 
   const hasActiveFilters = 
     statusFilter !== "all" || 
-    memberFilter !== "all" || 
+    (isAdmin && memberFilter !== "all") || 
     businessTypeFilter !== "all" || 
     sourceFilter !== "all" || 
     urgencyFilter !== "all" || 
-    myLeadsOnly || 
+    (isAdmin && myLeadsOnly) || 
     searchQuery.trim().length > 0;
 
   const handleClearFilters = () => {
@@ -322,7 +377,7 @@ function MainApp() {
   };
 
   // Leads applicable to current user for banner alerts
-  const alertLeadsScope = isAdmin ? leads : leads.filter(l => l.assignedToId === currentUser?.id);
+  const alertLeadsScope = accessibleLeads;
 
   return (
     <div className="app-container">
@@ -336,7 +391,7 @@ function MainApp() {
         onOpenAdminSettings={() => setIsAdminSettingsOpen(true)}
         onExportCSV={handleExportCSV}
         onResetData={handleResetData}
-        totalLeadsCount={leads.length}
+        totalLeadsCount={accessibleLeads.length}
       />
 
       {/* Main Content Area */}
@@ -365,11 +420,10 @@ function MainApp() {
           ) : (
             <MemberDashboard
               currentUser={currentUser}
-              leads={leads}
+              leads={accessibleLeads}
               onOpenAddModal={handleOpenAddModal}
               onOpenLeadDetail={(lead) => setSelectedLeadForDetail(lead)}
               onNavigateToTable={() => {
-                setMyLeadsOnly(true);
                 setCurrentTab("table");
               }}
             />
@@ -381,22 +435,24 @@ function MainApp() {
           <div>
             <div className="page-header">
               <div className="page-title-group">
-                <h2>Leads Directory & Log</h2>
+                <h2>{isAdmin ? "Leads Directory & Log" : "My Assigned Leads"}</h2>
                 <p>
-                  Showing {filteredLeads.length} of {leads.length} recorded leads
-                  {isAdmin ? " (All company leads)" : ` (Assigned to ${currentUser?.name})`}
+                  Showing {filteredLeads.length} of {accessibleLeads.length} leads
+                  {isAdmin ? " (All company leads)" : ` (Assigned to ${currentUser?.name || "you"})`}
                 </p>
               </div>
 
               <div className="header-actions">
-                {/* Toggle between All and My leads */}
-                <button
-                  className={`btn ${myLeadsOnly ? "btn-primary" : "btn-outline"} btn-sm`}
-                  onClick={() => setMyLeadsOnly(!myLeadsOnly)}
-                >
-                  <UserCheck size={14} />
-                  <span>{myLeadsOnly ? "Showing: My Leads Only" : "Filter: My Leads"}</span>
-                </button>
+                {/* Toggle between All and My leads - only relevant for Admin */}
+                {isAdmin && (
+                  <button
+                    className={`btn ${myLeadsOnly ? "btn-primary" : "btn-outline"} btn-sm`}
+                    onClick={() => setMyLeadsOnly(!myLeadsOnly)}
+                  >
+                    <UserCheck size={14} />
+                    <span>{myLeadsOnly ? "Showing: My Leads Only" : "Filter: My Leads"}</span>
+                  </button>
+                )}
 
                 <button 
                   className="btn btn-primary btn-sm"
@@ -623,6 +679,8 @@ function MainApp() {
         }}
         onAddNote={handleAddNote}
         onUpdateStatus={handleQuickStatusChange}
+        currentUser={currentUser}
+        isAdmin={isAdmin}
       />
 
       {/* Login & Role Switcher Modal */}

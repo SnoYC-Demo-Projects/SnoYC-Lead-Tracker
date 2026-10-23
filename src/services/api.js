@@ -193,14 +193,25 @@ export const api = {
   // LEADS (CRUD)
   // ==========================================
 
-  async getLeads() {
+  async getLeads(currentUser = null) {
     if (!isSupabaseConfigured || !supabase) return null;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("leads")
         .select("*")
         .order("createdAt", { ascending: false });
 
+      if (currentUser && currentUser.role !== "admin") {
+        const userId = currentUser.id;
+        const userName = currentUser.name ? currentUser.name.trim() : "";
+        if (userId && userName) {
+          query = query.or(`assignedToId.eq.${userId},assignedToName.ilike.${userName}`);
+        } else if (userId) {
+          query = query.eq("assignedToId", userId);
+        }
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     } catch (err) {
