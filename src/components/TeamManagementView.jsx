@@ -98,10 +98,10 @@ export function TeamManagementView({ leads, onFilterByMember, onAddLeadForMember
                 <Clock size={18} />
               </div>
               <div>
-                <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#fef08a" }}>
+                <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#92400e" }}>
                   Pending Access Requests ({pendingUsers.length})
                 </h3>
-                <div style={{ fontSize: "0.78rem", color: "#fde047" }}>
+                <div style={{ fontSize: "0.78rem", color: "#b45309" }}>
                   These team members have registered and are waiting for your authorization to log in
                 </div>
               </div>
@@ -113,7 +113,7 @@ export function TeamManagementView({ leads, onFilterByMember, onAddLeadForMember
               <div 
                 key={pUser.id}
                 style={{
-                  background: "#101623",
+                  background: "var(--bg-surface)",
                   border: "1px solid var(--border-medium)",
                   borderRadius: "var(--radius-md)",
                   padding: "0.9rem 1.25rem",
@@ -121,7 +121,8 @@ export function TeamManagementView({ leads, onFilterByMember, onAddLeadForMember
                   alignItems: "center",
                   justifyContent: "space-between",
                   flexWrap: "wrap",
-                  gap: "1rem"
+                  gap: "1rem",
+                  boxShadow: "var(--shadow-sm)"
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>

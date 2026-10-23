@@ -99,6 +99,19 @@ function MainApp() {
     }
   }, [leads]);
 
+  // Prevent background page scrolling when modal or drawer is active (especially on mobile)
+  const isAnyModalOpen = isAddModalOpen || Boolean(selectedLeadForDetail) || isLoginModalOpen || isShareModalOpen || isAdminSettingsOpen;
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isAnyModalOpen]);
+
   // Lead CRUD handlers with role-based permission verification
   const handleSaveLead = async (leadData) => {
     if (editingLead) {

@@ -75,25 +75,14 @@ export function AdminDashboard({ leads, users, onFilterByMember, onFilterByStatu
 
       {/* Pending User Approval Banner */}
       {pendingUsers.length > 0 && (
-        <div style={{
-          background: "linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(99, 102, 241, 0.12) 100%)",
-          border: "1px solid rgba(245, 158, 11, 0.4)",
-          borderRadius: "var(--radius-lg)",
-          padding: "1rem 1.25rem",
-          marginBottom: "1.5rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "1rem",
-          flexWrap: "wrap"
-        }}>
+        <div className="pending-approval-banner">
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <span style={{ fontSize: "1.3rem" }}>🔔</span>
             <div>
-              <strong style={{ fontSize: "0.92rem", color: "#fef08a" }}>
+              <strong style={{ fontSize: "0.92rem", color: "#92400e" }}>
                 {pendingUsers.length} New Team Member Registration{pendingUsers.length > 1 ? "s" : ""} Awaiting Approval
               </strong>
-              <div style={{ fontSize: "0.78rem", color: "#fde047", marginTop: "0.15rem" }}>
+              <div style={{ fontSize: "0.78rem", color: "#b45309", marginTop: "0.15rem" }}>
                 Review and approve their access so they can log in and start tracking leads.
               </div>
             </div>
@@ -265,7 +254,7 @@ export function AdminDashboard({ leads, users, onFilterByMember, onFilterByStatu
                 <span 
                   key={src} 
                   className="filter-chip"
-                  style={{ background: "rgba(255,255,255,0.05)", borderColor: "var(--border-subtle)" }}
+                  style={{ background: "var(--bg-surface-elevated)", borderColor: "var(--border-medium)" }}
                 >
                   <strong style={{ color: "var(--text-primary)" }}>{src}</strong>: {count} leads
                 </span>

@@ -28,126 +28,212 @@ export function Navbar({
 }) {
   const { currentUser, isAdmin, logout } = useAuth();
 
+  const handleTabSelect = (tab) => {
+    setCurrentTab(tab);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <header className="navbar">
-      <div className="nav-brand">
-        <div className="brand-icon-wrapper">
-          <img src="/logo.png" alt="SnoYC Lead Logo" className="brand-logo-img" />
+      <div className="navbar-main-row">
+        {/* Brand */}
+        <div className="nav-brand">
+          <div className="brand-icon-wrapper">
+            <img src="/logo.png" alt="SnoYC Lead Logo" className="brand-logo-img" />
+          </div>
+          <div className="brand-text">
+            <h1>SnoYC Lead</h1>
+            <span>{isAdmin ? "Admin HQ" : "Sales Portal"}</span>
+          </div>
         </div>
-        <div className="brand-text">
-          <h1>SnoYC Lead</h1>
-          <span>{isAdmin ? "Admin Headquarters" : "Sales Representative Portal"}</span>
-        </div>
-      </div>
 
-      <nav className="nav-tabs">
-        <button
-          className={`nav-tab-btn ${currentTab === "dashboard" ? "active" : ""}`}
-          onClick={() => setCurrentTab("dashboard")}
-        >
-          <LayoutDashboard size={16} />
-          <span>Dashboard</span>
-        </button>
-
-        <button
-          className={`nav-tab-btn ${currentTab === "table" ? "active" : ""}`}
-          onClick={() => setCurrentTab("table")}
-        >
-          <TableProperties size={16} />
-          <span>Leads Table</span>
-          <span className="nav-tab-badge">{totalLeadsCount}</span>
-        </button>
-
-        <button
-          className={`nav-tab-btn ${currentTab === "kanban" ? "active" : ""}`}
-          onClick={() => setCurrentTab("kanban")}
-        >
-          <Kanban size={16} />
-          <span>Pipeline</span>
-        </button>
-
-        {isAdmin && (
+        {/* Desktop-only Navigation Tabs */}
+        <nav className="nav-tabs nav-tabs-desktop">
           <button
-            className={`nav-tab-btn ${currentTab === "team" ? "active" : ""}`}
-            onClick={() => setCurrentTab("team")}
+            className={`nav-tab-btn ${currentTab === "dashboard" ? "active" : ""}`}
+            onClick={() => handleTabSelect("dashboard")}
           >
-            <Users size={16} />
-            <span>Team Overview</span>
+            <LayoutDashboard size={16} />
+            <span>Dashboard</span>
           </button>
-        )}
-      </nav>
 
-      <div className="nav-actions">
-        <button 
-          className="btn btn-outline btn-sm" 
-          onClick={onOpenShareModal}
-          title="Connect team member phones/laptops"
-          style={{ borderColor: "rgba(52, 211, 153, 0.4)", color: "#34d399" }}
-        >
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#34d399", display: "inline-block" }} />
-          <span>Team Link</span>
-        </button>
+          <button
+            className={`nav-tab-btn ${currentTab === "table" ? "active" : ""}`}
+            onClick={() => handleTabSelect("table")}
+          >
+            <TableProperties size={16} />
+            <span>Leads Table</span>
+            <span className="nav-tab-badge">{totalLeadsCount}</span>
+          </button>
 
-        <button 
-          className="btn btn-outline btn-sm" 
-          onClick={onExportCSV}
-          title="Export Leads to CSV / Excel"
-        >
-          <Download size={15} />
-          <span>Export CSV</span>
-        </button>
+          <button
+            className={`nav-tab-btn ${currentTab === "kanban" ? "active" : ""}`}
+            onClick={() => handleTabSelect("kanban")}
+          >
+            <Kanban size={16} />
+            <span>Pipeline</span>
+          </button>
 
-        <button 
-          className="btn btn-primary btn-sm"
-          onClick={onOpenAddModal}
-        >
-          <PlusCircle size={16} />
-          <span>Add Lead</span>
-        </button>
+          {isAdmin && (
+            <button
+              className={`nav-tab-btn ${currentTab === "team" ? "active" : ""}`}
+              onClick={() => handleTabSelect("team")}
+            >
+              <Users size={16} />
+              <span>Team Overview</span>
+            </button>
+          )}
+        </nav>
 
-        {currentUser && (
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        {/* Right Section: Add Lead + User Profile + Logout */}
+        <div className="nav-actions">
+          {/* Secondary Tools (Desktop only) */}
+          <div className="nav-secondary-desktop">
+            <button 
+              className="btn btn-outline btn-sm nav-tool-btn" 
+              onClick={onOpenShareModal}
+              title="Connect team member phones/laptops"
+              style={{ borderColor: "rgba(16, 185, 129, 0.4)", color: "#059669" }}
+            >
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+              <span>Team Link</span>
+            </button>
+
+            <button 
+              className="btn btn-outline btn-sm nav-tool-btn" 
+              onClick={onExportCSV}
+              title="Export Leads to CSV / Excel"
+            >
+              <Download size={14} />
+              <span>Export CSV</span>
+            </button>
+
             {isAdmin && (
               <button 
-                className="btn btn-outline btn-sm"
+                className="btn btn-outline btn-sm nav-tool-btn"
                 onClick={onOpenAdminSettings}
-                title="Change Admin Email/ID & Password"
-                style={{ borderColor: "rgba(236, 72, 153, 0.4)", color: "#f472b6" }}
+                title="Change Admin ID & Password"
+                style={{ borderColor: "rgba(217, 119, 6, 0.4)", color: "#d97706" }}
               >
-                <Key size={14} />
+                <Key size={13} />
                 <span>ID & Password</span>
               </button>
             )}
-
-            <div 
-              className="user-pill" 
-              onClick={isAdmin ? onOpenAdminSettings : onOpenUserModal}
-              style={{ cursor: "pointer" }}
-              title="Click to view credentials"
-            >
-              <img 
-                src={currentUser.avatar} 
-                alt={currentUser.name} 
-                className="user-avatar" 
-              />
-              <div className="user-info">
-                <span className="user-name">{currentUser.name}</span>
-                <span className={`role-badge ${currentUser.role}`}>
-                  {currentUser.role === "admin" ? "ADMIN" : "MEMBER"}
-                </span>
-              </div>
-            </div>
-
-            <button 
-              className="btn-icon" 
-              onClick={logout}
-              title="Sign Out"
-              style={{ color: "var(--text-muted)" }}
-            >
-              <LogOut size={16} />
-            </button>
           </div>
-        )}
+
+          {/* Add Lead Primary CTA */}
+          <button 
+            className="btn btn-primary btn-sm nav-add-btn"
+            onClick={onOpenAddModal}
+            title="Log new prospective client"
+          >
+            <PlusCircle size={15} />
+            <span className="add-btn-text">Add Lead</span>
+          </button>
+
+          {/* User Profile Pill & Sign Out */}
+          {currentUser && (
+            <div className="nav-user-cluster">
+              <div 
+                className="user-pill" 
+                onClick={isAdmin ? onOpenAdminSettings : onOpenUserModal}
+                style={{ cursor: "pointer" }}
+                title="Click to view credentials"
+              >
+                <img 
+                  src={currentUser.avatar} 
+                  alt={currentUser.name} 
+                  className="user-avatar" 
+                />
+                <div className="user-info">
+                  <span className="user-name">{currentUser.name}</span>
+                  <span className={`role-badge ${currentUser.role}`}>
+                    {currentUser.role === "admin" ? "ADMIN" : "MEMBER"}
+                  </span>
+                </div>
+              </div>
+
+              <button 
+                className="btn-icon nav-logout-btn" 
+                onClick={logout}
+                title="Sign Out"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Sub Row: Quick Action Chips & Mobile Tab Navigator */}
+      <div className="navbar-mobile-row">
+        {/* Mobile secondary tools row */}
+        <div className="mobile-tools-bar">
+          <button 
+            className="mobile-tool-chip" 
+            onClick={onOpenShareModal}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+            <span>Team Link</span>
+          </button>
+
+          <button 
+            className="mobile-tool-chip" 
+            onClick={onExportCSV}
+          >
+            <Download size={12} />
+            <span>Export CSV</span>
+          </button>
+
+          {isAdmin && (
+            <button 
+              className="mobile-tool-chip admin-chip"
+              onClick={onOpenAdminSettings}
+            >
+              <Key size={12} />
+              <span>ID & Password</span>
+            </button>
+          )}
+        </div>
+
+        {/* Mobile Navigation Tabs */}
+        <nav className="nav-tabs nav-tabs-mobile">
+          <button
+            className={`nav-tab-btn ${currentTab === "dashboard" ? "active" : ""}`}
+            onClick={() => handleTabSelect("dashboard")}
+          >
+            <LayoutDashboard size={15} />
+            <span>Dashboard</span>
+          </button>
+
+          <button
+            className={`nav-tab-btn ${currentTab === "table" ? "active" : ""}`}
+            onClick={() => handleTabSelect("table")}
+          >
+            <TableProperties size={15} />
+            <span>Leads Table</span>
+            <span className="nav-tab-badge">{totalLeadsCount}</span>
+          </button>
+
+          <button
+            className={`nav-tab-btn ${currentTab === "kanban" ? "active" : ""}`}
+            onClick={() => handleTabSelect("kanban")}
+          >
+            <Kanban size={15} />
+            <span>Pipeline</span>
+          </button>
+
+          {isAdmin && (
+            <button
+              className={`nav-tab-btn ${currentTab === "team" ? "active" : ""}`}
+              onClick={() => handleTabSelect("team")}
+            >
+              <Users size={15} />
+              <span>Team</span>
+            </button>
+          )}
+        </nav>
       </div>
     </header>
   );

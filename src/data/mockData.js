@@ -13,13 +13,13 @@ export const INITIAL_USERS = [
 ];
 
 export const STATUS_OPTIONS = [
-  { value: "New", label: "New Lead", color: "#38bdf8", bg: "rgba(56, 189, 248, 0.15)", border: "rgba(56, 189, 248, 0.3)" },
-  { value: "Contacted", label: "Contacted", color: "#818cf8", bg: "rgba(129, 140, 248, 0.15)", border: "rgba(129, 140, 248, 0.3)" },
-  { value: "In Discussion", label: "In Discussion", color: "#facc15", bg: "rgba(250, 204, 21, 0.15)", border: "rgba(250, 204, 21, 0.3)" },
-  { value: "Proposal Sent", label: "Proposal Sent", color: "#fb923c", bg: "rgba(251, 146, 60, 0.15)", border: "rgba(251, 146, 60, 0.3)" },
-  { value: "Negotiation", label: "Negotiation", color: "#c084fc", bg: "rgba(192, 132, 252, 0.15)", border: "rgba(192, 132, 252, 0.3)" },
-  { value: "Won", label: "Closed / Won", color: "#4ade80", bg: "rgba(74, 222, 128, 0.15)", border: "rgba(74, 222, 128, 0.3)" },
-  { value: "Lost", label: "Lost / Dropped", color: "#f87171", bg: "rgba(248, 113, 113, 0.15)", border: "rgba(248, 113, 113, 0.3)" }
+  { value: "New", label: "New Lead", color: "#0284c7", bg: "#e0f2fe", border: "#bae6fd" },
+  { value: "Contacted", label: "Contacted", color: "#4f46e5", bg: "#eef2ff", border: "#c7d2fe" },
+  { value: "In Discussion", label: "In Discussion", color: "#b45309", bg: "#fef3c7", border: "#fde68a" },
+  { value: "Proposal Sent", label: "Proposal Sent", color: "#c2410c", bg: "#ffedd5", border: "#fed7aa" },
+  { value: "Negotiation", label: "Negotiation", color: "#7e22ce", bg: "#f3e8ff", border: "#e9d5ff" },
+  { value: "Won", label: "Closed / Won", color: "#15803d", bg: "#dcfce7", border: "#bbf7d0" },
+  { value: "Lost", label: "Lost / Dropped", color: "#b91c1c", bg: "#fee2e2", border: "#fecaca" }
 ];
 
 export const BUSINESS_TYPES = [

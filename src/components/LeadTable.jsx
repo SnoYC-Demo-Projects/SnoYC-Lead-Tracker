@@ -232,7 +232,7 @@ export function LeadTable({
                         }}
                       >
                         {STATUS_OPTIONS.map(opt => (
-                          <option key={opt.value} value={opt.value} style={{ background: "#111827", color: opt.color }}>
+                          <option key={opt.value} value={opt.value} style={{ background: "#ffffff", color: opt.color }}>
                             {opt.label}
                           </option>
                         ))}

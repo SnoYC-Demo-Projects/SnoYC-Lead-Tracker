@@ -215,13 +215,13 @@ export function LeadDetailDrawer({
               <FileText size={14} /> Client Need / Requirement
             </div>
             <div style={{
-              background: "rgba(99, 102, 241, 0.08)",
-              border: "1px solid rgba(99, 102, 241, 0.2)",
+              background: "rgba(16, 185, 129, 0.08)",
+              border: "1px solid rgba(16, 185, 129, 0.25)",
               borderRadius: "var(--radius-md)",
               padding: "0.9rem",
               fontSize: "0.85rem",
               lineHeight: 1.5,
-              color: "#e2e8f0"
+              color: "var(--text-primary)"
             }}>
               {lead.need}
             </div>
